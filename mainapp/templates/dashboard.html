@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %} Dashboard | To Do App{% endblock %}
+{% block body %}
+<nav class="navbar navbar-light bg-light">
+    <a class="navbar-brand" href="{% url 'home' %}">
+    <img src="https://getbootstrap.com/docs/4.3/assets/brand/bootstrap-solid.svg" width="30" height="30" class="d-inline-block align-top" alt="">
+    To Do
+    </a>
+    <a class="navbar-brand" href="{% url 'logout' %}">Logout</a>
+</nav>
+<div class="container">
+    <div class="row d-flex" style="padding-left: 80%;">
+        <a href="{% url 'add_task' %}" style="text-decoration: none;"><button class="btn btn-outline-success my-3 mx-2">Add Task</button></a>
+        <a href="{% url 'my_activity' %}" style="text-decoration: none;"><button class="btn btn-outline-info my-3">My Activity</button></a>
+    </div>
+    <div class="row gx-5">
+      {% if not tasks %}
+        <div class="alert alert-primary mt-2 " role="alert">
+          No Tasks Available. Click Add Task Button to add your first task.
+      </div>
+      {% endif %}
+      {% for task in tasks %}
+        <div class="col my-2">
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                  <h5 class="card-title">{{ task.name }}</h5>
+                  <h6 class="card-subtitle mb-2 text-muted">{{ task.deadline|date:"d M, Y" }}</h6>
+                  <!-- <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p> -->
+                  <a href="javascript:void(0);" onclick="deleteTask({{ task.id }})" class="card-link">Delete</a>
+                  <a href="javascript:void(0);" onclick="markTaskAsComplete({{ task.id }}, {% if task.is_complete %} false {% else %} true {% endif %})" class="card-link">{% if task.is_complete %} Mark as InComplete {% else %} Mark as Complete {% endif %}</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% for message in messages %}
+          <div class="alert alert-primary mt-2 " role="alert">
+              {{message}}
+          </div>
+    {% endfor %}
+    {% csrf_token %}
+</div>
+{% endblock %}
+{% block javascript %}
+<script>
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  function deleteTask(id){ 
+    if (confirm("Are you sure you want delete Task!")) {
+        $.ajax({
+            type : "DELETE",
+            url : "/api/tasks/"+id,
+            headers: {
+              "X-CSRFToken": csrftoken,
+            },
+            data : {},
+            success : function(response, status, xhr) {     
+                if(xhr.status == 204){ 
+                    alert("Task Deleted Successfully.")   
+                    window.location.href = '/';
+                }else{
+                    alert("Something went wrong.")
+                }
+            },
+            error: function(xhr, errmsg, err) {
+                if(xhr.status == 400){
+                    alert(JSON.parse(xhr.responseText).non_field_errors)
+                }
+                if(xhr.status == 401){
+                    alert(JSON.parse(xhr.responseText).error)    
+                    window.location.href = '/login/';                   
+                }
+                if(xhr.status == 500){
+                    alert("Internal server error.")          
+                }
+            }                        
+        });
+    }       
+  }
+
+  function markTaskAsComplete(id, type){ 
+    console.log(type);
+      $.ajax({
+          type : "PATCH",
+          url : "/api/tasks/"+id+"/",
+          headers: {
+            "X-CSRFToken": csrftoken,
+          },
+          data : {"is_complete":type},
+          success : function(response, status, xhr) {     
+              if(xhr.status == 200){ 
+                  alert("Status Change Successfully.")   
+                  window.location.href = '/';
+              }else{
+                  alert("Something went wrong.")
+              }
+          },
+          error: function(xhr, errmsg, err) {
+              if(xhr.status == 400){
+                  alert(JSON.parse(xhr.responseText).non_field_errors)
+              }
+              if(xhr.status == 401){
+                  alert(JSON.parse(xhr.responseText).error)    
+                  window.location.href = '/login/';                   
+              }
+              if(xhr.status == 500){
+                  alert("Internal server error.")          
+              }
+          }                        
+      });
+   
+}
+</script>
+{% endblock %}
+
